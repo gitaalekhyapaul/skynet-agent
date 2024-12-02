@@ -4,6 +4,8 @@
 import { Annotation } from "@langchain/langgraph";
 import { SYSTEM_PROMPT_TEMPLATE } from "./prompts.js";
 import { RunnableConfig } from "@langchain/core/runnables";
+import dotenv from "dotenv";
+dotenv.config();
 
 export const ConfigurationSchema = Annotation.Root({
   /**
@@ -18,7 +20,7 @@ export const ConfigurationSchema = Annotation.Root({
 });
 
 export function ensureConfiguration(
-  config: RunnableConfig,
+  config: RunnableConfig
 ): typeof ConfigurationSchema.State {
   /**
    * Ensure the defaults are populated.
@@ -27,6 +29,8 @@ export function ensureConfiguration(
   return {
     systemPromptTemplate:
       configurable.systemPromptTemplate ?? SYSTEM_PROMPT_TEMPLATE,
-    model: configurable.model ?? "claude-3-5-sonnet-20240620",
+    model: configurable.model ?? "openai/gpt-4o-mini",
   };
 }
+
+export const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN;

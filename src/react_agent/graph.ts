@@ -1,4 +1,4 @@
-import { AIMessage } from "@langchain/core/messages";
+import { AIMessage, BaseMessage } from "@langchain/core/messages";
 import { RunnableConfig } from "@langchain/core/runnables";
 import { MessagesAnnotation, StateGraph } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
@@ -6,16 +6,16 @@ import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { ConfigurationSchema, ensureConfiguration } from "./configuration.js";
 import { TOOLS } from "./tools.js";
 import { loadChatModel } from "./utils.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 // Define the function that calls the model
 async function callModel(
   state: typeof MessagesAnnotation.State,
-  config: RunnableConfig,
+  config: RunnableConfig
 ): Promise<typeof MessagesAnnotation.Update> {
   /** Call the LLM powering our agent. **/
   const configuration = ensureConfiguration(config);
-
-  // Feel free to customize the prompt, model, and other logic!
   const model = (await loadChatModel(configuration.model)).bindTools(TOOLS);
 
   const response = await model.invoke([
@@ -23,13 +23,12 @@ async function callModel(
       role: "system",
       content: configuration.systemPromptTemplate.replace(
         "{system_time}",
-        new Date().toISOString(),
+        new Date().toISOString()
       ),
     },
     ...state.messages,
   ]);
 
-  // We return a list, because this will get added to the existing list
   return { messages: [response] };
 }
 
@@ -37,14 +36,24 @@ async function callModel(
 function routeModelOutput(state: typeof MessagesAnnotation.State): string {
   const messages = state.messages;
   const lastMessage = messages[messages.length - 1];
-  // If the LLM is invoking tools, route there.
+  const userQuery =
+    messages.find((m) => "role" in m && m.role === "user")?.content || "";
+
+  // If the message contains a response but needs to continue processing
+  if (
+    "content" in lastMessage &&
+    typeof lastMessage.content === "string" &&
+    lastMessage.content.includes("Here are the trending tokens") // Or any other trigger phrase
+  ) {
+    // Return to tools to continue processing
+    return "tools";
+  }
+
+  // Normal tool routing
   if ((lastMessage as AIMessage)?.tool_calls?.length || 0 > 0) {
     return "tools";
   }
-  // Otherwise end the graph.
-  else {
-    return "__end__";
-  }
+  return "__end__";
 }
 
 // Define a new graph. We use the prebuilt MessagesAnnotation to define state:
@@ -62,7 +71,7 @@ const workflow = new StateGraph(MessagesAnnotation, ConfigurationSchema)
     "callModel",
     // Next, we pass in the function that will determine the sink node(s), which
     // will be called after the source node is called.
-    routeModelOutput,
+    routeModelOutput
   )
   // This means that after `tools` is called, `callModel` node is called next.
   .addEdge("tools", "callModel");

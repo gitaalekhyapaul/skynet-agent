@@ -16,3 +16,8 @@ export async function loadChatModel(fullySpecifiedName: string) {
     return await initChatModel(model, { modelProvider: provider });
   }
 }
+
+export function hasChainId(message: string): boolean {
+  const chainIds = ['ethereum', 'binance-smart-chain', 'polygon-pos'];
+  return chainIds.some(chain => message.toLowerCase().includes(chain));
+}
