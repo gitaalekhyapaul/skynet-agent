@@ -48,6 +48,8 @@ graph LR
 
 ## Setup
 
+### Option 1: Local Setup
+
 1. Clone the repository:
 
 ```bash
@@ -77,6 +79,29 @@ TG_BOT_TOKEN=xxx
 
 ```bash
 yarn test
+```
+
+### Option 2: Docker Setup
+
+Run the API using Docker Compose:
+
+```bash
+# Build and start the services
+docker compose up --build
+
+# The API will be available at http://localhost:8123
+```
+
+Docker Compose will:
+- Start the LangGraph API server
+- Set up Redis for state management
+- Configure Postgres for data persistence
+- Handle environment variables from .env file
+
+To stop the services:
+
+```bash
+docker compose down
 ```
 
 ## Usage
